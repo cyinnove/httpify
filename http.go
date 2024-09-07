@@ -7,16 +7,16 @@ import (
 	"time"
 )
 
-// DefaultHostSprayingTransport returns a new http.Transport with disabled idle connections and keepalives.
-func DefaultHostSprayingTransport() *http.Transport {
-	transport := DefaultReusePooledTransport()
+// HostSprayingTransport returns a new http.Transport with disabled idle connections and keepalives.
+func NoKeepAliveTransport() *http.Transport {
+	transport := PooledTransport()
 	transport.DisableKeepAlives = true
 	transport.MaxIdleConnsPerHost = -1
 	return transport
 }
 
-// DefaultReusePooledTransport returns a new http.Transport for connection reuse.
-func DefaultReusePooledTransport() *http.Transport {
+// PooledTransport returns a new http.Transport for connection reuse.
+func PooledTransport() *http.Transport {
 	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -40,13 +40,13 @@ func DefaultReusePooledTransport() *http.Transport {
 // DefaultClient creates a new http.Client with disabled idle connections and keepalives.
 func DefaultClient() *http.Client {
 	return &http.Client{
-		Transport: DefaultHostSprayingTransport(),
+		Transport: NoKeepAliveTransport(),
 	}
 }
 
 // DefaultPooledClient returns an http.Client with a pooled transport for connection reuse.
 func DefaultPooledClient() *http.Client {
 	return &http.Client{
-		Transport: DefaultReusePooledTransport(),
+		Transport: PooledTransport(),
 	}
 }

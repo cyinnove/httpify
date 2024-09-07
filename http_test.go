@@ -8,13 +8,13 @@ import (
 )
 
 func TestDefaultHostSprayingTransport(t *testing.T) {
-	transport := DefaultHostSprayingTransport()
+	transport := NoKeepAliveTransport()
 	assert.NotNil(t, transport)
 	assert.True(t, transport.DisableKeepAlives)
 }
 
 func TestDefaultReusePooledTransport(t *testing.T) {
-	transport := DefaultReusePooledTransport()
+	transport := PooledTransport()
 	assert.NotNil(t, transport)
 	assert.Equal(t, 100, transport.MaxIdleConnsPerHost)
 	assert.Equal(t, 90*time.Second, transport.IdleConnTimeout)

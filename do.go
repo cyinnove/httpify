@@ -13,7 +13,7 @@ func PassthroughErrorHandler(resp *http.Response, err error, _ int) (*http.Respo
 	return resp, err
 }
 
-// Do sends an HTTP request with retries and backoff.
+// Do sends an HTTP request with retries and retryStrategy.
 func (c *Client) Do(req *Request) (*http.Response, error) {
 	var resp *http.Response
 	var err error
@@ -83,9 +83,9 @@ func (c *Client) Do(req *Request) (*http.Response, error) {
 			c.drainBody(req, resp)
 		}
 
-		// Wait for the time specified by backoff then retry.
+		// Wait for the time specified by retryStrategy then retry.
 		// If the context is cancelled however, return.
-		wait := c.Backoff(c.options.RetryWaitMin, c.options.RetryWaitMax, i, resp)
+		wait := c.RetryStrategy(c.options.RetryWaitMin, c.options.RetryWaitMax, i, resp)
 
 		// Exit if the main context or the request context is done
 		// Otherwise, wait for the duration and try again.

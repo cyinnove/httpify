@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-// Client wraps an HTTP client with retry and backoff logic.
+// Client wraps an HTTP client with retry and retryStrategy logic.
 type Client struct {
 	HTTPClient      *http.Client
 	RequestLogHook  RequestLogHook
 	ResponseLogHook ResponseLogHook
 	ErrorHandler    ErrorHandler
 	CheckRetry      CheckRetry
-	Backoff         Backoff
+	RetryStrategy   RetryStrategy
 	options         Options
 }
 
@@ -50,26 +50,26 @@ var DefaultOptionsSingle = Options{
 func NewClient(options Options) *Client {
 	httpClient := DefaultHTTPClient(options.Timeout)
 	return &Client{
-		HTTPClient: httpClient,
-		CheckRetry: DefaultRetryPolicy(),
-		Backoff:    DefaultBackoff(),
-		options:    options,
+		HTTPClient:    httpClient,
+		CheckRetry:    DefaultRetryPolicy(),
+		RetryStrategy: DefaultRetryStrategy(),
+		options:       options,
 	}
 }
 
 // NewWithHTTPClient initializes a Client with a custom HTTP client.
 func NewWithHTTPClient(client *http.Client, options Options) *Client {
 	return &Client{
-		HTTPClient: client,
-		CheckRetry: DefaultRetryPolicy(),
-		Backoff:    DefaultBackoff(),
-		options:    options,
+		HTTPClient:    client,
+		CheckRetry:    DefaultRetryPolicy(),
+		RetryStrategy: DefaultRetryStrategy(),
+		options:       options,
 	}
 }
 
 // DefaultHTTPClient creates an HTTP client with a default timeout.
 func DefaultHTTPClient(timeout time.Duration) *http.Client {
-	return &http.Client{Timeout: timeout, Transport: DefaultHostSprayingTransport()}
+	return &http.Client{Timeout: timeout, Transport: NoKeepAliveTransport()}
 }
 
 // setKillIdleConnections configures connection keep-alive behavior based on options.
