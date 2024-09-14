@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptrace"
 	"os"
@@ -88,8 +87,16 @@ func FromRequest(r *http.Request) (*Request, error) {
 	}
 	r.ContentLength = contentLength
 
-	return &Request{bodyReader, r, Metrics{}}, nil
+	// Reset the body on the original request
+	r.Body = io.NopCloser(bytes.NewReader([]byte{}))
+
+	return &Request{
+		body:    bodyReader,
+		Request: r,
+		Metrics: Metrics{},
+	}, nil
 }
+
 
 // FromRequestWithTrace wraps an http.Request into a retryable Request with trace enabled.
 func FromRequestWithTrace(r *http.Request) (*Request, error) {
@@ -131,46 +138,38 @@ func (r *Request) BodyBytes() ([]byte, error) {
 	_, err = buf.ReadFrom(body)
 	return buf.Bytes(), err
 }
-
 func getBodyReaderAndContentLength(rawBody interface{}) (ReaderFunc, int64, error) {
 	var bodyReader ReaderFunc
 	var contentLength int64
 
 	if rawBody != nil {
 		switch body := rawBody.(type) {
-		case ReaderFunc:
-			bodyReader = body
-			if lr, ok := createReaderAndGetLength(body); ok {
-				contentLength = lr
-			}
-		case []byte:
-			buf := body
+		case *bytes.Buffer:
+			buf := body.Bytes()
 			bodyReader = func() (io.Reader, error) { return bytes.NewReader(buf), nil }
 			contentLength = int64(len(buf))
-		case *bytes.Buffer:
-			buf := body
-			bodyReader = func() (io.Reader, error) { return bytes.NewReader(buf.Bytes()), nil }
-			contentLength = int64(buf.Len())
 		case *bytes.Reader:
-			buf, err := ioutil.ReadAll(body)
+			buf, err := io.ReadAll(body)
 			if err != nil {
 				return nil, 0, err
 			}
 			bodyReader = func() (io.Reader, error) { return bytes.NewReader(buf), nil }
 			contentLength = int64(len(buf))
 		case io.Reader:
-			buf, err := ioutil.ReadAll(body)
+			buf, err := io.ReadAll(body)
 			if err != nil {
 				return nil, 0, err
 			}
 			bodyReader = func() (io.Reader, error) { return bytes.NewReader(buf), nil }
 			contentLength = int64(len(buf))
 		default:
-			return nil, 0, fmt.Errorf("unsupported body type: %T", rawBody)
+			return nil, 0, nil
 		}
 	}
+
 	return bodyReader, contentLength, nil
 }
+
 
 func createReaderAndGetLength(body ReaderFunc) (int64, bool) {
 	tmp, err := body()
